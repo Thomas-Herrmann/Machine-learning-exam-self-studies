@@ -1,0 +1,14 @@
+digraph G {
+0 -> 4[label="1"];
+0 -> 3[label="1"];
+0 -> 2[label="1"];
+1 -> 5[label="1"];
+1 -> 4[label="1"];
+1 -> 3[label="1"];
+0 [label="Left PersonA"];
+1 [label="Left PersonB"];
+2 [label="Right Sugar"];
+3 [label="Right Frosting"];
+4 [label="Right Eggs"];
+5 [label="Right Flour"];
+}
