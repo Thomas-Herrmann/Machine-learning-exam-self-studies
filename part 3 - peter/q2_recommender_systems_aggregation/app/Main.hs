@@ -13,8 +13,16 @@ main = do
     writeFile "agg.dot" $ show agg
     print $ pagerank  agg ([("{USER, TIME}", Set.fromList [("TIME", "Morning"), ("USER", "Matt")])], "{SONG}", 3)
     putStrLn "bipartite->pagerank:"
-    let bp = mkbipartite heteroGraph ([(Set.singleton "USER", "{USER}", 0.3), (Set.singleton "TIME", "{TIME}", 0.3), (Set.fromList ["USER", "TIME"], "{USER, TIME}", 0.4)], 0.5)
-                                     ([(Set.singleton "COUNTRY","{COUNTRY}", 0.3), (Set.singleton "GENRE", "{GENRE}", 0.3), (Set.fromList ["COUNTRY", "GENRE"], "{COUNTRY, GENRE}", 0.4)], 0.5)
+    let bp = mkbipartite heteroGraph ([(Set.singleton "USER", "{USER}", 0.5), (Set.fromList ["USER", "TIME"], "{USER, TIME}", 0.5)], 0.5)
+                                     ([(Set.singleton "COUNTRY","{COUNTRY}", 0.5), (Set.singleton "GENRE", "{GENRE}", 0.5)], 0.5)
                                      ("SONG", "PLAY")
     writeFile "bp.dot" $ show bp
+    let bpca = mkbipartite heteroGraph ([(Set.fromList ["USER", "TIME"], "{USER, TIME}", 1.0)], 1.0)
+                                     ([], 0.0)
+                                     ("SONG", "PLAY")
+    writeFile "bpca.dot" $ show bpca
+    let bpcf = mkbipartite heteroGraph ([(Set.fromList ["USER"], "{USER}", 1.0)], 1.0)
+                                     ([], 0.0)
+                                     ("SONG", "PLAY")
+    writeFile "bpcf.dot" $ show bpcf
     print $ pagerank bp ([("{USER}", Set.fromList [("USER","Matt")]), ("{TIME}", Set.fromList [("TIME","Morning")])], "SONG", 3)
