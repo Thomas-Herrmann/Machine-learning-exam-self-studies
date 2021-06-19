@@ -92,8 +92,8 @@ neAggregate g@(Graph _ _ wmap vmap) a (p1, p2) (𝜏1, 𝜏2) = mkgraph $ concat
         insP2 = Prelude.filter (isInstance p2) $ Prelude.map Set.fromList $ subsequencesOfSize (length p2) vs
 
         sizedSG            = Prelude.map (mkgraph . Prelude.map (\e -> (e, wmap Map.! e))) $ subsequencesOfSize (length esa) es
-        matchingSG         = Prelude.filter (hasEdges esa . edges) sizedSG
-        aggEdges inP1 inP2 = [(((𝜏1, inP1), (𝜏2, inP2)), fromIntegral $ length includingSG), (((𝜏2, inP2), (𝜏1, inP1)), fromIntegral $ length includingSG)]
+        matchingSG         = Prelude.filter ((Prelude.length (vertices a) ==) . Prelude.length . vertices) $ Prelude.filter (hasEdges esa . edges) sizedSG
+        aggEdges inP1 inP2 = Prelude.filter ((0.0 /= ) . snd) [(((𝜏1, inP1), (𝜏2, inP2)), fromIntegral $ length includingSG), (((𝜏2, inP2), (𝜏1, inP1)), fromIntegral $ length includingSG)]
             where
                 includingSG = Prelude.filter (((inP1 `Set.union` inP2) `isSubsetOf`) . Set.fromList . vertices) matchingSG
 
