@@ -2,7 +2,10 @@ module Summary
 ( summary
 , transitionProba
 , clusteredTransitionProba
-, Summary(..)) where
+, segmentSentences
+, kmeans
+, Summary(..)
+) where
 
 import Data.List(intercalate, sortBy, elemIndex)
 import Data.Map as Map
@@ -30,19 +33,25 @@ summary transprobaf m s =
 
 
 segmentSentences :: String -> [String]
-segmentSentences s = aux s [[]]
+segmentSentences s = aux False s [[]]
     where
-        aux [] []           = []
-        aux [] ([] : l)     = l
-        aux [] (buffer : l) = reverse buffer : l
+        aux _ [] []           = []
+        aux _ [] ([] : l)     = l
+        aux _ [] (buffer : l) = reverse buffer : l
 
-        aux (c : s) l@([] : _)       | isSentenceEnd c || isWhitespace c = aux s l 
-        aux (e : w : s) (buffer : l) | isSentenceEnd e && isWhitespace w = aux s $ [] : reverse (e : buffer) : l
+        aux _ ('[' : s) l    = aux True s l
+        aux True (']' : s) l = aux False s l
+        aux True (_ : s) l   = aux True s l
 
-        aux ('\n' : s) l       = aux s l
-        aux (c:s) (buffer : l) = aux s $ (c : buffer) : l
+        aux False (e : s) l@([] : _)   | isWhitespace e                    = aux False s l
+        aux False (c : s) l@([] : _)   | isSentenceEnd c || isWhitespace c = aux False s l 
+        aux False (e : s) (buffer : l) | isSentenceEnd e                   = aux False s $ [] : reverse (e : buffer) : l
 
-        aux s l = error "invalid pattern"
+        aux False ('\n' : s) l                                         = aux False s l
+        aux False ('e' : 't' : ' ' : 'a' : 'l' : '.' : s) (buffer : l) = aux False s $ ('e' : 't' : ' ' : 'a' : 'l' : '.' : buffer) : l
+        aux False (c : s) (buffer : l)                                 = aux False s $ (c : buffer) : l
+
+        aux _ s l = error "invalid pattern"
 
 
 segmentWords :: String -> [String]
@@ -86,11 +95,15 @@ orderByRank v transprobaf = sortBy (\(_, r1) (_, r2) -> compare r2 r1) $ senScor
 
 
 cosineSim :: WordMap -> WordMap -> Float
-cosineSim wmap1 wmap2 = fromIntegral (Map.size wmapProduct) / fromIntegral (length ws1 * length ws2)
+cosineSim wmap1 wmap2 | wmap1 == wmap2 = 0.0 
+                      | otherwise      = 
+        if wmap1Length == 0.0 || wmap2Length == 0.0 
+            then 0.0 
+            else wmapProduct / (wmap1Length * wmap2Length)
     where
-        ws1         = Map.keys wmap1
-        ws2         = Map.keys wmap2
-        wmapProduct = Map.intersectionWith (*) wmap1 wmap2
+        wmap1Length = sqrt $ Prelude.foldr ((+) . (** 2)) 0.0 $ Map.elems wmap1
+        wmap2Length = sqrt $ Prelude.foldr ((+) . (** 2)) 0.0 $ Map.elems wmap2
+        wmapProduct = sum $ Map.elems (Map.intersectionWith (*) wmap1 wmap2)
 
 
 makeWordMap :: [String] -> WordMap
@@ -107,19 +120,18 @@ transitionProba s1 s2 v = cosineSim wmap1 wmap2 / Prelude.foldr (((+) . cosineSi
         wmap2 = makeWordMap $ segmentWords s2
 
 
-clusteredTransitionProba :: String -> String -> [String] -> Float
-clusteredTransitionProba s1 s2 v = clusteredSim wmap1 wmap2 / Prelude.foldr (((+) . clusteredSim wmap1) . makeWordMap . segmentWords) 0.0 v
+clusteredTransitionProba :: [WordMap] -> String -> String -> [String] -> Float
+clusteredTransitionProba clusters s1 s2 v = clusteredSim wmap1 wmap2 / Prelude.foldr (((+) . clusteredSim wmap1) . makeWordMap . segmentWords) 0.0 v
     where
         wmap1    = makeWordMap $ segmentWords s1
         wmap2    = makeWordMap $ segmentWords s2
         docwmap  = makeWordMap $ segmentWords (unwords v)
-        clusters = kmeans v $ ceiling (sqrt (fromIntegral (length v)))
 
         lambda = 0.5
 
         clusterImpor wmap        = cosineSim (assignCluster clusters wmap) docwmap
         clusterSim wmap          = cosineSim wmap $ assignCluster clusters wmap
-        clusteredSim wmap1 wmap2 = cosineSim wmap1 wmap2 * lambda * clusterImpor wmap1 * clusterSim wmap1 + (1.0 - lambda) * clusterImpor wmap2 * clusterSim wmap2
+        clusteredSim wmap1 wmap2 = cosineSim wmap1 wmap2 * lambda * clusterImpor wmap1 * clusterSim wmap1 + cosineSim wmap1 wmap2 * (1.0 - lambda) * clusterImpor wmap2 * clusterSim wmap2
 
 
 makeTransitionMatrix :: [String] -> (String -> String -> [String] -> Float) -> Matrix Float
