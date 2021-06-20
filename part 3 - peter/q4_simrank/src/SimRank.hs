@@ -6,6 +6,7 @@ module SimRank
 , vertices
 , homoSimRank
 , bipartiteSimRank
+, addScores
 , Graph(..)
 ) where
 
@@ -109,6 +110,14 @@ mkgraph wes = Graph (mkarray mappedes) (mkarray $ Prelude.map swap mappedes) wma
         wmap     = Map.fromList wes
         mkarray  = Array.accumArray (flip (:)) [] (0, length vs - 1)
 
+
+addScores :: (Ord a, Eq a, Num n) => Graph a n -> Map a Float -> Graph (a, Float) n
+addScores g@(Graph _ _ wmap _) scoreMap = mkgraph $ Prelude.map (\e@(u, v) -> (((u, scoreMap Map.! u), (v, scoreMap Map.! v)), wmap Map.! e)) es
+    where
+        es = edges g 
+
+
+-- SimRank functions
 
 squareG :: (Ord a, Num n) => Graph a n -> Graph (BiPair a) n
 squareG g@(Graph arr _ wmap vmap) = mkgraph $ (prune . toBiPairs) [(((v, u), (v', u')), wmap Map.! e1 * wmap Map.! e2) | e1@(v, v') <- es, e2@(u, u') <- es, e1 /= e2]

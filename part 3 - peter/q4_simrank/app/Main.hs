@@ -4,11 +4,13 @@ import SimRank
 
 main :: IO ()
 main = do 
-    putStrLn "saved webG^2"
-    writeFile "g.dot" $ show webGraph
-    writeFile "gsquared.dot" $ show (squareG webGraph)
     putStrLn "homogenous simrank(webG):"
-    print $ homoSimRank 0.8 webGraph 10
+    let wgsr = homoSimRank 0.8 webGraph 15
+    print wgsr
+    writeFile "g.dot" $ show webGraph
+    writeFile "gsquared.dot" $ show (addScores (squareG webGraph) wgsr)
     putStrLn "bipartite simrank(personItemG):"
-    print $ bipartiteSimRank 0.8 personItemGraph 10
-    writeFile "bp.dot" $ show personItemGraph 
+    let pigsr = bipartiteSimRank 0.8 personItemGraph 15
+    print $ pigsr
+    writeFile "bp.dot" $ show personItemGraph
+    writeFile "bpsquared.dot" $ show (addScores (squareG personItemGraph) pigsr)
