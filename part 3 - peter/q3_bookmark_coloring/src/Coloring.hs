@@ -3,7 +3,13 @@ module Coloring
     , fbca
     , lfbca
     , exampleGraph
-    , fromPQOrdered     
+    , fromPQOrdered
+    , Graphv(..)
+    , visualExampleGraph
+    , pqToMap
+    , addScores
+    , convertGtoVG
+    , lfbcaGraph     
     ) where
 
 import Data.Graph as Graph
@@ -13,6 +19,9 @@ import Data.List as List
 import qualified Data.Array as Array
 import Data.PSQueue as PQ
 import Data.Maybe as Maybe
+import qualified Data.Bimap as Bimap
+import Data.Bifunctor(bimap)
+import Data.Tuple(swap)
 
 
 data SNNode = Location
@@ -160,6 +169,121 @@ userProfile (g, vm, wm, pm) u = Prelude.map normWeight ls
 
 lfbca :: SNGraph -> Vertex -> Float -> Float -> Int -> PSQ Vertex Float
 lfbca sng@(g, vm, wm, pm) u d β = fbca (g', vm, wm'', pm) u d
+    where
+        vs = vertices g
+        es = edges g
+        us = Prelude.filter isUser vs
+
+        isUser v = (vm ! v) == User
+
+        isFriend e@(v1, v2) | e `Map.member` wm = isUser v1 && isUser v2
+                            | otherwise         = False
+
+        visited v = Prelude.filter (\v' -> not $ isFriend (v, v')) $ (Array.!) g v
+
+        sharesLoc v1 v2 = not $ List.null (visited v1 `List.intersect` visited v2)
+
+        userSim v1 v2 = cosineSim (userProfile (g', vm, wm', pm) v1) (userProfile (g', vm, wm', pm) v2)
+
+        lfes = [(u1, u2) | u1 <- us, u2 <- us, u1 /= u2 && sharesLoc u1 u2] List.\\ es
+        g'   = buildG (0, length vs - 1) $ es ++ lfes
+        wm'  = wm `Map.union` Map.fromList (Prelude.zip lfes [-1.0..])
+        wm'' = Map.mapWithKey (\(v1, v2) w -> if isUser v1 && isUser v2 then augWeight v1 v2 else w) wm'
+
+        augWeight v1 v2 =
+            case () of
+                _ | v2 `Set.member` (friends Set.\\ locFriends)             -> (1 - β) / fromIntegral (Set.size friends)
+                  | v2 `Set.member` (friends `Set.intersection` locFriends) -> (1 - β) / fromIntegral (Set.size friends) + β / su * userSim v1 v2
+                  | v2 `Set.member` (locFriends Set.\\ friends)             -> β / su * userSim v1 v2
+            where
+                friends    = Set.fromList $ Prelude.filter (\v' -> isFriend (v1, v')) $ (Array.!) g v1
+                locFriends = Set.fromList $ Prelude.filter (sharesLoc v1) $ us List.\\ [v1]
+                su         = sum $ Set.map (userSim v1) locFriends
+
+
+-- Graph visualization utils
+
+data Graphv a n = Graphv (Array.Array Int [Int]) (Array.Array Int [Int]) (Map (a, a) n) (Bimap.Bimap a Int)
+
+instance (Ord a, Show a, Show n, Fractional n) => Show (Graphv a n) where
+    
+    show g@(Graphv _ _ wmap vmap) = "graph G {\n" 
+                                ++ concatMap (\((u, v), w) -> show (vmap Bimap.! u) ++ " -- " ++ show (vmap Bimap.! v) ++ "[label=\"" ++ show w ++ "\"];\n") wes 
+                                ++ intercalate "\n" (Prelude.map (\u -> show (vmap Bimap.! u) ++ " [label=\"" ++ (escape . show) u ++ "\"];") $ verticesv g)
+                                ++ "\n}"
+        where
+            wes = Prelude.map (\e -> (e, wmap Map.! e)) $ edgesv g
+
+            escape []         = []
+            escape ('"' : s') = '\\' : '"' : escape s'
+            escape (c : s')   = c : escape s'
+
+
+outAdj :: (Ord a, Fractional n) => Graphv a n -> a -> [a]
+outAdj (Graphv oarr _ _ vmap) = Prelude.map (vmap Bimap.!>) . (Array.!) oarr . (Bimap.!) vmap
+
+
+inAdj :: (Ord a, Fractional n) => Graphv a n -> a -> [a]
+inAdj (Graphv _ iarr _ vmap) = Prelude.map (vmap Bimap.!>) . (Array.!) iarr . (Bimap.!) vmap
+
+
+edgesv :: (Ord a, Fractional n) => Graphv a n -> [(a, a)]
+edgesv (Graphv arr _ _ vmap) = Prelude.map (bimap (vmap Bimap.!>) (vmap Bimap.!>)) $ Prelude.foldr (\(v, vs) es -> Prelude.foldr (\u es' -> (v, u) : es') es vs) [] $ Array.assocs arr
+
+
+verticesv :: (Ord a, Fractional n) => Graphv a n -> [a]
+verticesv (Graphv arr _ _ vmap) = Prelude.map (vmap Bimap.!>) $ Array.indices arr
+
+
+mkgraph :: (Ord a, Fractional n) => [((a, a), n)] -> Graphv a n
+mkgraph wes = Graphv (mkarray mappedes) (mkarray $ Prelude.map swap mappedes) wmap vmap
+    where
+        (es, ws) = Prelude.unzip wes
+        mappedes = Prelude.map (bimap (vmap Bimap.!) (vmap Bimap.!)) es
+        vs       = let (from, to) = Prelude.unzip es in Prelude.foldr (List.union . (: [])) [] $ from ++ to
+        vmap     = Bimap.fromList $ Prelude.zip vs [1, 2..]
+        wmap     = Map.fromList wes
+        mkarray  = Array.accumArray (flip (:)) [] (1, length vs)
+
+
+addScores :: (Ord a, Eq a, Fractional n) => Graphv a n -> Map a Float -> Graphv (a, Float) n
+addScores g@(Graphv _ _ wmap _) scoreMap = mkgraph $ Prelude.map addScore es
+    where
+        addScore e@(u, v) = (((u, uScore), (v, vScore)), wmap Map.! e)
+            where
+                uScore = if Map.member u scoreMap then scoreMap Map.! u else -1 -- no rank
+                vScore = if Map.member v scoreMap then scoreMap Map.! v else -1 -- no rank
+
+        es = edgesv g
+
+
+visualExampleGraph = mkgraph [(("l1", "u1"), 7.0), (("l2", "u1"), 3.0), (("l2", "u3"), 1.0), (("l3", "u3"), 1.0), (("u1", "u3"), -1.0), (("u3", "u2"), -1.0), (("l1", "u4"), 2.0)]
+
+vertexToVisual v = 
+    case v of
+        0 -> "l1"
+        1 -> "u1"
+        2 -> "l2"
+        3 -> "l3"
+        4 -> "u3"
+        5 -> "u2"
+        6 -> "u4"
+
+
+pqToMap :: PSQ Vertex Float -> Map String Float
+pqToMap pq = Map.fromList $ Prelude.map (\binding -> (vertexToVisual (PQ.key binding), PQ.prio binding)) (PQ.toList pq)
+
+
+convertGtoVG :: SNGraph -> Graphv String Float
+convertGtoVG sng@(g, _, wm, _) = mkgraph wes
+    where
+        es  = edges g
+        es' = Prelude.foldr (\(u, v) acc -> if (u, v) `Set.member` acc || (v, u) `Set.member` acc then acc else Set.insert (u, v) acc) Set.empty es
+        wes = Prelude.map (\e@(u, v) -> ((vertexToVisual u, vertexToVisual v), wm ! e)) $ Set.toList es'
+
+
+lfbcaGraph :: SNGraph -> Vertex -> Float -> Float -> SNGraph
+lfbcaGraph sng@(g, vm, wm, pm) u d β = (g', vm, wm'', pm)
     where
         vs = vertices g
         es = edges g
