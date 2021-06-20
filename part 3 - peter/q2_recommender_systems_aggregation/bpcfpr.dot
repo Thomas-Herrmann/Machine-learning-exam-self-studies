@@ -1,0 +1,12 @@
+digraph G {
+1 -> 4[label="2.0"];
+2 -> 4[label="1.0"];
+3 -> 4[label="1.0"];
+4 -> 1[label="2.0"];
+4 -> 2[label="1.0"];
+4 -> 3[label="1.0"];
+1 [label="((\"SONG\",fromList [(\"SONG\",\"Song#1\")]),0.22972777)"];
+2 [label="((\"SONG\",fromList [(\"SONG\",\"Song#2\")]),0.11486389)"];
+3 [label="((\"SONG\",fromList [(\"SONG\",\"Song#3\")]),0.11486389)"];
+4 [label="((\"{USER}\",fromList [(\"USER\",\"Matt\")]),-1.0)"];
+}

@@ -6,6 +6,7 @@ module Recommend
 , neAggregate
 , gmerge
 , mkbipartite
+, addScores
 ) where
 
 
@@ -161,6 +162,17 @@ mkgraph wes = Graph (mkarray mappedes) (mkarray $ Prelude.map swap mappedes) wma
         vmap     = Bimap.fromList $ Prelude.zip vs [1, 2..]
         wmap     = Map.fromList wes
         mkarray  = Array.accumArray (flip (:)) [] (1, length vs)
+
+
+addScores :: (Ord a, Eq a, Fractional n) => Graph a n -> Map a Float -> Graph (a, Float) n
+addScores g@(Graph _ _ wmap _) scoreMap = mkgraph $ Prelude.map addScore es
+    where
+        addScore e@(u, v) = (((u, uScore), (v, vScore)), wmap Map.! e)
+            where
+                uScore = if Map.member u scoreMap then scoreMap Map.! u else -1 -- no rank
+                vScore = if Map.member v scoreMap then scoreMap Map.! v else -1 -- no rank
+
+        es = edges g 
 
 
 -- Extra utils
