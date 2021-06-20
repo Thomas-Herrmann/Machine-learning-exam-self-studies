@@ -1,0 +1,15 @@
+non-clustered summary (Tullimonstrum WIKI):
+
+1: Additionally, the supposed notochord extends in front of the level of the eyes, which is not the case in any other vertebrate; even if it was a notochord, the presence of notochords is not limited to vertebrates either. -- 4.5828167e-2
+2: Tullimonstrum had a pair of vertical, ventral fins (though the fidelity of preservation of fossils of its soft body makes this difficult to determine) situated at the tail end of its body, and typically featured a long proboscis with up to eight small sharp teeth on each "jaw", with which it may have actively probed for small creatures and edible detritus in the muddy bottom. -- 4.342585e-2
+3: Further criticism was drawn towards the identification of the blocks of the body variously as gill pouches and muscle blocks (myomeres), despite the lack of differentiation in the structure of these blocks. -- 4.2799514e-2
+4: Additionally, the thin and jointed proboscis is inconsistent with a role in ram or suction feeding, which is the feeding method typically used for open-water vertebrates; the gill pouches would have further obstructed the flow of water. -- 3.9768092e-2
+5: Its classification has been the subject of controversy, and interpretations of the fossil have likened it to molluscs, arthropods, conodonts, worms, and vertebrates. -- 3.9107192e-2
+
+clustered summary (Tullimonstrum WIKI):
+
+1: Additionally, the supposed notochord extends in front of the level of the eyes, which is not the case in any other vertebrate; even if it was a notochord, the presence of notochords is not limited to vertebrates either. -- 6.472508e-2
+2: Further criticism was drawn towards the identification of the blocks of the body variously as gill pouches and muscle blocks (myomeres), despite the lack of differentiation in the structure of these blocks. -- 6.000013e-2
+3: Tullimonstrum had a pair of vertical, ventral fins (though the fidelity of preservation of fossils of its soft body makes this difficult to determine) situated at the tail end of its body, and typically featured a long proboscis with up to eight small sharp teeth on each "jaw", with which it may have actively probed for small creatures and edible detritus in the muddy bottom. -- 5.4781772e-2
+4: Additionally, the thin and jointed proboscis is inconsistent with a role in ram or suction feeding, which is the feeding method typically used for open-water vertebrates; the gill pouches would have further obstructed the flow of water. -- 5.1523905e-2
+5: It was part of the ecological community represented in the unusually rich group of soft-bodied organisms found among the assemblage called the Mazon Creek fossils from their site in Grundy County, Illinois. -- 5.1301792e-2
